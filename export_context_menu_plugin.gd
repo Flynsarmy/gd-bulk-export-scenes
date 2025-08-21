@@ -2,39 +2,39 @@
 @tool
 extends EditorContextMenuPlugin
 
-# We need a reference to the FileDialog and DirectoryDialog nodes, which will be created in the main plugin script.
+# Single file export dialog
 var file_dialog: FileDialog
+# Bulk file export dialog
 var dir_dialog: FileDialog
+# List of TSCN paths selected in FileSystem
 var selected_paths: Array[String] = []
 
-# This function is called by Godot when a context menu is about to be displayed.
-# The 'paths' argument contains a list of paths to the selected items.
 func _popup_menu(paths: PackedStringArray) -> void:
-	# Ensure only one file is selected to avoid unexpected behavior.
+	# Nothing to do
 	if paths.size() < 1:
 		return
 
 	# Reset our array of paths
 	selected_paths = []
 
+	# Cache .tscn paths
 	for path in paths:
-		# Check if the selected file is a .tscn file.
 		if path.ends_with(".tscn"):
 			selected_paths.push_back(path)
 
-	# Add our custom menu item if we've selected at least one TSCN
+	# Add single export menu item
 	if selected_paths.size() == 1:
 		add_context_menu_item("Export scene as GLTF", _on_export_selected)
+	# Add bulk export menu item
 	elif selected_paths.size() > 1:
 		add_context_menu_item("Bulk export scenes as GLTF", _on_bulk_export_selected)
 
 # Export multiple scenes
-func _on_bulk_export_selected(paths: PackedStringArray) -> void:
+func _on_bulk_export_selected(_paths: PackedStringArray) -> void:
 	dir_dialog.title = "Select a folder to export scenes to"
 	dir_dialog.popup_centered()
 
-# This function handles the bulk export after the user selects a directory.
-# This is connected to the 'dir_selected' signal of the DirectoryDialog.
+# A directory was chosen. Run the export
 func _on_dir_selected(save_path: String) -> void:
 	var errors: int = 0
 
@@ -60,18 +60,15 @@ func _on_dir_selected(save_path: String) -> void:
 		push_warning("Failed to export ", errors, " out of ", selected_paths.size(), " scenes.")
 
 # Export a single scene
-func _on_export_selected(paths: PackedStringArray) -> void:
-	# We'll suggest a filename based on the selected scene's name.
-	#var scene_name = selected_paths[0].get_file().get_basename()
+func _on_export_selected(_paths: PackedStringArray) -> void:
 	file_dialog.title = "Export Scene as GLTF"
 	file_dialog.current_path = selected_paths[0] + ".glb"
 	file_dialog.popup_centered()
 
-## This is the new function that handles the file export after the user selects a location.
+# A filepath was chosen. Run the export
 func _on_file_selected(to: String) -> void:
 	var error: Error = _export_scene(selected_paths[0], to)
 
-	# Print the result to the console.
 	if error == OK:
 		print("Successfully exported scene to: ", to)
 
